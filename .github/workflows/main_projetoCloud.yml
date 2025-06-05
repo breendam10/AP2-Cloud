@@ -13,6 +13,10 @@ jobs:
     steps:
       - uses: actions/checkout@v2
 
+      - name: Converte usuário ACR para minúsculas
+        run: |
+          echo "ACR_USER=$(echo '${{ secrets.AzureAppService_ContainerUsername_768f325ca9284813ab53d412ca7384f7 }}' | tr '[:upper:]' '[:lower:]')" >> $GITHUB_ENV
+
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v2
 
@@ -27,8 +31,7 @@ jobs:
         uses: docker/build-push-action@v3
         with:
           push: true
-          # Repare no uso de `| toLower` para converter tudo em caixa baixa
-          tags: projetocloud.azurecr.io/${{ secrets.AzureAppService_ContainerUsername_768f325ca9284813ab53d412ca7384f7 | toLower }}/ap2cloud-app:${{ github.sha }}
+          tags: projetocloud.azurecr.io/${{ env.ACR_USER }}/ap2cloud-app:${{ github.sha }}
           file: ./Dockerfile
 
   deploy:
@@ -46,4 +49,4 @@ jobs:
           app-name: 'projetoCloud'
           slot-name: 'production'
           publish-profile: ${{ secrets.AzureAppService_PublishProfile_68da25a7ad5a41dfba68a979c4b43bdd }}
-          images: 'projetocloud.azurecr.io/${{ secrets.AzureAppService_ContainerUsername_768f325ca9284813ab53d412ca7384f7 | toLower }}/ap2cloud-app:${{ github.sha }}'
+          images: 'projetocloud.azurecr.io/${{ env.ACR_USER }}/ap2cloud-app:${{ github.sha }}'
