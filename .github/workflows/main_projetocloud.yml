@@ -42,6 +42,7 @@ jobs:
         push: true
         tags: projetocloud.azurecr.io/ap2-cloud-app:${{ github.sha }}
         file: ./Dockerfile
+        context: .
 
   deploy:
     runs-on: ubuntu-latest
