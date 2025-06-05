@@ -11,16 +11,30 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - uses: actions/checkout@v2
+      - name: Checkout repository
+        uses: actions/checkout@v2
+
+      - name: Set up JDK 21
+        uses: actions/setup-java@v3
+        with:
+          distribution: 'temurin'
+          java-version: '21'
+          cache: 'maven'
+
+      - name: Build with Maven
+        run: |
+          chmod +x mvnw
+          ./mvnw clean package -DskipTests
 
       - name: Converte usuário ACR para minúsculas
         run: |
-          echo "ACR_USER=$(echo '${{ secrets.AzureAppService_ContainerUsername_768f325ca9284813ab53d412ca7384f7 }}' | tr '[:upper:]' '[:lower:]')" >> $GITHUB_ENV
+          echo "ACR_USER=$(echo '${{ secrets.AzureAppService_ContainerUsername_768f325ca9284813ab53d412ca7384f7 }}' \
+            | tr '[:upper:]' '[:lower:]')" >> $GITHUB_ENV
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v2
 
-      - name: Log in to registry
+      - name: Log in to ACR
         uses: docker/login-action@v2
         with:
           registry: projetocloud.azurecr.io
@@ -33,6 +47,7 @@ jobs:
           push: true
           tags: projetocloud.azurecr.io/${{ env.ACR_USER }}/ap2cloud-app:${{ github.sha }}
           file: ./Dockerfile
+          context: .
 
   deploy:
     runs-on: ubuntu-latest
