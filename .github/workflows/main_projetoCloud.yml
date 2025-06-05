@@ -1,3 +1,6 @@
+# Docs for the Azure Web Apps Deploy action: https://github.com/Azure/webapps-deploy
+# More GitHub Actions for Azure: https://github.com/Azure/actions
+
 name: Build and deploy container app to Azure Web App - projetoCloud
 
 on:
@@ -8,46 +11,27 @@ on:
 
 jobs:
   build:
-    runs-on: ubuntu-latest
+    runs-on: 'ubuntu-latest'
 
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v2
+    - uses: actions/checkout@v2
 
-      - name: Set up JDK 21
-        uses: actions/setup-java@v3
-        with:
-          distribution: 'temurin'
-          java-version: '21'
-          cache: 'maven'
+    - name: Set up Docker Buildx
+      uses: docker/setup-buildx-action@v2
 
-      - name: Build with Maven
-        run: |
-          chmod +x mvnw
-          ./mvnw clean package -DskipTests
+    - name: Log in to registry
+      uses: docker/login-action@v2
+      with:
+        registry: https://projetocloud.azurecr.io/
+        username: ${{ secrets.AzureAppService_ContainerUsername_46ad664869dc43f4a4b556c1bf5ddc61 }}
+        password: ${{ secrets.AzureAppService_ContainerPassword_026cbe7a64bc49959fc7351ee2474ac1 }}
 
-      - name: Converte usuário ACR para minúsculas
-        run: |
-          echo "ACR_USER=$(echo '${{ secrets.AzureAppService_ContainerUsername_768f325ca9284813ab53d412ca7384f7 }}' \
-            | tr '[:upper:]' '[:lower:]')" >> $GITHUB_ENV
-
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v2
-
-      - name: Log in to ACR
-        uses: docker/login-action@v2
-        with:
-          registry: projetocloud.azurecr.io
-          username: ${{ secrets.AzureAppService_ContainerUsername_768f325ca9284813ab53d412ca7384f7 }}
-          password: ${{ secrets.AzureAppService_ContainerPassword_62da35bf75f845a98343c826153e64ad }}
-
-      - name: Build and push container image to registry
-        uses: docker/build-push-action@v3
-        with:
-          push: true
-          tags: projetocloud.azurecr.io/${{ env.ACR_USER }}/ap2cloud-app:${{ github.sha }}
-          file: ./Dockerfile
-          context: .
+    - name: Build and push container image to registry
+      uses: docker/build-push-action@v3
+      with:
+        push: true
+        tags: projetocloud.azurecr.io/${{ secrets.AzureAppService_ContainerUsername_46ad664869dc43f4a4b556c1bf5ddc61 }}//ap2cloud-app:${{ github.sha }}
+        file: ./Dockerfile
 
   deploy:
     runs-on: ubuntu-latest
@@ -57,11 +41,11 @@ jobs:
       url: ${{ steps.deploy-to-webapp.outputs.webapp-url }}
 
     steps:
-      - name: Deploy to Azure Web App
-        id: deploy-to-webapp
-        uses: azure/webapps-deploy@v2
-        with:
-          app-name: 'projetoCloud'
-          slot-name: 'production'
-          publish-profile: ${{ secrets.AzureAppService_PublishProfile_68da25a7ad5a41dfba68a979c4b43bdd }}
-          images: 'projetocloud.azurecr.io/${{ env.ACR_USER }}/ap2cloud-app:${{ github.sha }}'
+    - name: Deploy to Azure Web App
+      id: deploy-to-webapp
+      uses: azure/webapps-deploy@v2
+      with:
+        app-name: 'projetoCloud'
+        slot-name: 'production'
+        publish-profile: ${{ secrets.AzureAppService_PublishProfile_d90e3864b07b46e5853027ba7b299a2e }}
+        images: 'projetocloud.azurecr.io/${{ secrets.AzureAppService_ContainerUsername_46ad664869dc43f4a4b556c1bf5ddc61 }}//ap2cloud-app:${{ github.sha }}'
