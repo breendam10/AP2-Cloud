@@ -45,7 +45,7 @@ jobs:
         uses: docker/build-push-action@v3
         with:
           push: true
-          tags: projetocloud.azurecr.io/ap2cloud-app:${{ github.sha }}
+          tags: projetocloud.azurecr.io/ap2-cloud-app:${{ github.sha }}
           file: ./Dockerfile
           context: .
 
@@ -64,4 +64,4 @@ jobs:
           app-name: 'projetoCloud'
           slot-name: 'production'
           publish-profile: ${{ secrets.AzureAppService_PublishProfile_68da25a7ad5a41dfba68a979c4b43bdd }}
-          images: 'projetocloud.azurecr.io/ap2cloud-app:${{ github.sha }}'
+          images: 'projetocloud.azurecr.io/ap2-cloud-app:${{ github.sha }}'
