@@ -6,6 +6,14 @@ Este projeto expõe uma API RESTful para gerenciamento de usuários, configuraç
 
 ---
 
+### 👥 Projeto realizado por: 
+- **Brenda Mendes**
+- **Esther Pessanha**
+- **Ian Esteves**
+- **Gabriel Franklyn**
+
+---
+
 ## 🔗 Painel Swagger
 
 - **Swagger UI:**
