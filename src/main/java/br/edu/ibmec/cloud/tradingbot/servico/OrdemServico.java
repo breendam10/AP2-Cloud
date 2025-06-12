@@ -28,7 +28,7 @@ public class OrdemServico {
     @Autowired
     private BinanceServico binanceServico;
 
-    @Transactional
+@Transactional
     public OrdemCriadaResposta criarOrdem(Integer usuarioId, OrdemRequisicao requisicao) {
         Usuario usuario = usuarioRepositorio.findById(usuarioId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Usuário não encontrado"));
@@ -49,34 +49,45 @@ public class OrdemServico {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Tipo de operação inválido: " + requisicao.getTp_operacao());
         }
 
-        // Criar ordem na Binance
+        Double quantidade = requisicao.getQuantidade();
+
+        if (usuario.getConfiguracao() != null && usuario.getConfiguracao().getQuantidadePorOrdem() != null) {
+            double limite = usuario.getConfiguracao().getQuantidadePorOrdem();
+
+            if (quantidade == null || quantidade <= 0) {
+                quantidade = limite;
+            }
+            else if (quantidade > limite) {
+                throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Quantidade solicitada maior que o limite configurado para o usuário (" + limite + ")");
+            }
+        } else if (quantidade == null || quantidade <= 0) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "A quantidade da ordem é obrigatória, pois não há valor padrão configurado.");
+        }
+
         BinanceOrdemResposta binanceResposta = binanceServico.criarOrdemMercado(
                 requisicao.getSimbolo(),
-                requisicao.getQuantidade(),
+                quantidade,
                 tipoOperacaoBinance
         );
 
-        // Salvar relatório da ordem no banco de dados local
         RelatorioOrdemUsuario relatorio = new RelatorioOrdemUsuario();
         relatorio.setOrdemIdBinance(binanceResposta.getOrdemId());
         relatorio.setSimbolo(binanceResposta.getSimbolo());
         relatorio.setQuantidade(binanceResposta.getQuantidadeExecutada());
         relatorio.setDataOperacao(LocalDateTime.now());
         relatorio.setStatus(binanceResposta.getStatus());
-
         relatorio.setTpOperacao(requisicao.getTp_operacao());
         relatorio.setTipoOrdem(requisicao.getTipo());
 
-        // Se for uma ordem de compra, registre o preço de compra
         if ("COMPRA".equalsIgnoreCase(requisicao.getTp_operacao())) {
             relatorio.setPrecoCompra(binanceResposta.getPrecoMedioExecucao());
             relatorio.setStatus("EM_CARTEIRA");
-        } else { // Se for uma ordem de venda, atualize a ordem de compra anterior
+        } else {
             relatorio.setPrecoVenda(binanceResposta.getPrecoMedioExecucao());
 
             RelatorioOrdemUsuario ordemCompraExistente = usuario.getRelatoriosOrdens().stream()
                 .filter(o -> o.getSimbolo().equalsIgnoreCase(requisicao.getSimbolo()) && "EM_CARTEIRA".equalsIgnoreCase(o.getStatus()))
-                .findFirst() // Pega a primeira ordem de compra aberta para este símbolo
+                .findFirst()
                 .orElse(null);
 
             if (ordemCompraExistente != null) {
@@ -84,7 +95,7 @@ public class OrdemServico {
                 ordemCompraExistente.setStatus("VENDIDA");
                 relatorioOrdemUsuarioRepositorio.save(ordemCompraExistente);
             }
-            relatorio.setStatus("VENDIDA"); // Status da ordem de venda
+            relatorio.setStatus("VENDIDA");
         }
 
         if (usuario.getRelatoriosOrdens() == null) {
